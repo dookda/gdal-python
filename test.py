@@ -74,6 +74,6 @@ cmd = '''ogr2ogr -overwrite -f \"ESRI Shapefile\" {shp_name}.shp PG:"host={host}
     shp_name=shp_out, host=dbServer, username=dbUser, db=dbName, password=dbPW, sql=sql)
 os.system(cmd)
 
-idw = gdal.Grid("idw.tif", "v_pcd_aqi_d1.shp", zfield="pm25",
+idw = gdal.Grid("idw.tif", shp_out+".shp", zfield="pm25",
                 algorithm="invdist")
 idw = None
