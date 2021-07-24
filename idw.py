@@ -66,14 +66,31 @@ dbServer = "119.59.125.134"
 dbName = "data"
 dbUser = "postgres"
 dbPW = "Pgis@rti2dss@2020"
-shp_out = "v_pcd_aqi_d1"
-sql = "SELECT sta_id, pm25, ST_Transform(geom, 32647) as geom FROM {tb}".format(
-    tb=shp_out)
 
-cmd = '''ogr2ogr -overwrite -f \"ESRI Shapefile\" {shp_name}.shp PG:"host={host} user={username} dbname={db} password={password}" -sql "{sql}"'''.format(
-    shp_name=shp_out, host=dbServer, username=dbUser, db=dbName, password=dbPW, sql=sql)
-os.system(cmd)
+col = "aqi"
+tiffpath = "./tiff_"+col+"/"
+shppath = "./shp/"
 
-idw = gdal.Grid("idw.tif", shp_out+".shp", zfield="pm25",
-                algorithm="invdist")
-idw = None
+tbs = ["v_pcd_aqi_d1", "v_pcd_aqi_d2", "v_pcd_aqi_d3",
+       "v_pcd_aqi_d4", "v_pcd_aqi_d5", "v_pcd_aqi_d6",
+       "v_pcd_aqi_d7", "v_pcd_aqi_d8", "v_pcd_aqi_d9",
+       "v_pcd_aqi_d10", "v_pcd_aqi_d11", "v_pcd_aqi_d12",
+       "v_pcd_aqi_d13", "v_pcd_aqi_d14"]
+for tb in tbs:
+    sql = "SELECT sta_id, {col}, ST_Transform(geom, 32647) as geom FROM {tb}".format(
+        col=col, tb=tb)
+
+    cmd = '''ogr2ogr -overwrite -f \"ESRI Shapefile\" {shppath}{shp_name}.shp PG:"host={host} user={username} dbname={db} password={password}" -sql "{sql}"'''.format(
+        shppath=shppath, shp_name=tb, host=dbServer, username=dbUser, db=dbName, password=dbPW, sql=sql)
+    os.system(cmd)
+
+    out = tiffpath+col+"_"+tb+".tif"
+    print(out)
+
+    idw = gdal.Grid(out, shppath+tb+".shp", zfield=col,
+                    algorithm="invdist")
+    idw = None
+
+    cmd = "gdal_contour -a elev {out} {shppath}{shp_name}_contour.shp -i 5.0".format(
+        out=out, shppath=shppath, shp_name=tb)
+    os.system(cmd)
