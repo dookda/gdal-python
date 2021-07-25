@@ -17,7 +17,8 @@ def interp(col, tiffpath, shppath):
            "v_pcd_aqi_d10", "v_pcd_aqi_d11", "v_pcd_aqi_d12",
            "v_pcd_aqi_d13", "v_pcd_aqi_d14", "v_pcd_aqi_av14"]
     for tb in tbs:
-        sql = "SELECT sta_id, {col}, ST_Transform(geom, 32647) as geom FROM {tb}".format(
+        sql = '''SELECT sta_id, {col}, 
+            ST_Transform(geom, 32647) as geom FROM {tb}'''.format(
             col=col, tb=tb)
         cmd = '''ogr2ogr -overwrite -f \"ESRI Shapefile\" {shppath}{shp_name}.shp PG:"host={host} user={username} dbname={db} password={password}" -sql "{sql}"'''.format(
             shppath=shppath, shp_name=tb, host=dbServer, username=dbUser, db=dbName, password=dbPW, sql=sql)
