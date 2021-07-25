@@ -11,12 +11,12 @@ dbUser = "postgres"
 dbPW = "Pgis@rti2dss@2020"
 
 
-def interp(wks):
+def rainInterp(wks):
     tiffpath = "./tiff_tmd/"
     shppath = "./shp_tmd/"
     for wk in wks:
         print(wk)
-        sql = '''SELECT ST_Transform(ST_SetSRID(ST_Makepoint(lon, lat), 4326), 32647) as geom, sta_num, sta_th, avg(max_temp) as avg_temp, avg(rh) as avg_rh, sum(rainfall) as sum_rain
+        sql = '''SELECT ST_Transform(ST_SetSRID(ST_Makepoint(lon, lat), 4326), 32647) as geom, sta_num, avg(max_temp) as avg_temp, avg(rh) as avg_rh, sum(rainfall) as sum_rain
         FROM weather_daily_tmd
         WHERE  extract(week from datetime) = {wk} and 
             (province = 'ระยอง' OR 
@@ -55,15 +55,15 @@ def interp(wks):
 
 
 if __name__ == '__main__':
-    # wks = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-    #        17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
     wks = []
-    _date = datetime.date.today()  # if date is 01/01/2018
+    wks = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+           17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+    _date = datetime.date.today()
     year, week_num, day_of_week = _date.isocalendar()
     print("Week #" + str(week_num))
-    wks.append(week_num)
-    interp(wks)
-    # schedule.every().day.at("00:30").do(runSched)
+    # wks.append(week_num)
+    rainInterp(wks)
+    # schedule.every().day.at("09:00").do()
     # while True:
     #     schedule.run_pending()
     #     time.sleep(1)
