@@ -4,6 +4,8 @@ from datetime import date
 import os
 from osgeo import gdal
 from osgeo import ogr
+import schedule
+import time
 
 
 dbServer = "150.95.89.49"
@@ -60,9 +62,8 @@ def getApi(staLocation):
 def interp(shp, name):
     out = "./tiff_forecast/{name}.tif".format(name=name)
     print(out)
-    idw = gdal.Grid(out, shp, zfield='rain',
-                    algorithm="invdist:power=3")
-    idw = None
+    gdal.Grid(out, shp, zfield='rain',
+              algorithm="invdist:power=3")
 
 
 def createSHP():
@@ -82,18 +83,19 @@ def createSHP():
         i += 1
 
 
-if __name__ == "__main__":
-    # clearTb()
-    # staLocation = selectSampling()
-    # print(staLocation)
-    # getApi(staLocation)
+def runSched():
+    clearTb()
+    staLocation = selectSampling()
+    print(staLocation)
+    getApi(staLocation)
     createSHP()
 
     conn.commit()
     conn.close()
 
-# querystring = {"lat": "13.10", "lon": "100.10", "fields": "tc_max,tc_min,rh,rain",
-#                "date": "2021-07-30", "duration": "1"}
 
-# dicts = {"WeatherForecasts": [{"location": {"lat": 13.0925, "lon": 100.1089}, "forecasts": [{"time": "2021-07-30T00:00:00+07:00", "data": {"rain": 0.5, "rh": 76.67, "tc_max": 32.09}}, {"time": "2021-07-31T00:00:00+07:00", "data": {"rain": 9.3, "rh": 76.17, "tc_max": 31.98}}, {"time": "2021-08-01T00:00:00+07:00", "data": {"rain": 0, "rh": 74.39, "tc_max": 32.11}}, {
-#     "time": "2021-08-02T00:00:00+07:00", "data": {"rain": 1.8, "rh": 68.12, "tc_max": 34.01}}, {"time": "2021-08-03T00:00:00+07:00", "data": {"rain": 1.3, "rh": 66.93, "tc_max": 34.47}}, {"time": "2021-08-04T00:00:00+07:00", "data": {"rain": 0, "rh": 68.12, "tc_max": 34.93}}, {"time": "2021-08-05T00:00:00+07:00", "data": {"rain": 0, "rh": 67.02, "tc_max": 35.03}}]}]}
+if __name__ == "__main__":
+    schedule.every().day.at("09:10").do(runSched)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
