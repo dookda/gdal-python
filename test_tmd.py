@@ -1,49 +1,99 @@
 import requests
 import psycopg2 as pg2
+from datetime import date
+import os
+from osgeo import gdal
+from osgeo import ogr
 
 
-dbServer = "119.59.125.134"
-dbName = "data"
+dbServer = "150.95.89.49"
+dbName = "eec"
 dbUser = "postgres"
-dbPW = "Pgis@rti2dss@2020"
+dbPW = "Eec-MIS2564db"
 port = "5432"
 
 conn = pg2.connect(database=dbName, user=dbUser,
                    password=dbPW, host=dbServer, port=port)
-# cursor = conn.cursor()
 
-# sql = "SELECT * FROM ews_3hr"
-
-
-# cursor.execute(sql)
-# data = cursor.fetchall()
-# print(data)
-
-# conn.close()
-
-# url = "https://data.tmd.go.th/nwpapi/v1/forecast/location/daily"
-
-# headers = {
-#     'accept': "application/json",
-#     'authorization': "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6IjE1ZjUwYzM0ODY2ODdlY2Y1ZmE0NmZkMGFmZGVhYTJlYWQ3ZGMyNjcyZTJhMjg5MDEzZTlmYmU2NTI5YWVkZDUzYWQwMjE2ZWUyNTY3MTUzIn0.eyJhdWQiOiIyIiwianRpIjoiMTVmNTBjMzQ4NjY4N2VjZjVmYTQ2ZmQwYWZkZWFhMmVhZDdkYzI2NzJlMmEyODkwMTNlOWZiZTY1MjlhZWRkNTNhZDAyMTZlZTI1NjcxNTMiLCJpYXQiOjE2Mjc2MTMyMjgsIm5iZiI6MTYyNzYxMzIyOCwiZXhwIjoxNjU5MTQ5MjI4LCJzdWIiOiIxNTUwIiwic2NvcGVzIjpbXX0.ottFakPY4sW8Z1lNf2XKe43M3USH29KKau0sAPlT9X4lekxumvcpSOe8jrbj-Bp0vDdJfB6psfoklYEzAuLC6dCrPoFSM2dTjkAd6bNjc-2nCFxV6hwKiwXxvYXCRS1MuZTRssZws1HOAGgy1ewfbtjKIvVTqNKa0dy6TXDwkdRxvAszyikIVCYSHxQy1buI8NzCvppIAN5oKb1AJgEhYWjB9mXv9xjoyMBoo3Fo_Bjn4JqJjDtQMdWrVaamTVHSwaZKFZmvHJMnNRYgMbVHZo6tYi6JCqtqoDpYCvrdKXYLoa7_JsXqJsjEMF0UPRa9b2zUFq5WJ5fUaB0D5j2HTwNK4LvxsWNNJgZJCChMQBCgBAT9GDD_-aqTnMnAyISVegtxEYn8CnVjjJtP2Jjuvrvt_1fSru1PesPe3GzZtJ0PwUC3pNbyMueKzatDKEpDNn641dWK2nISGaBcrGaPKzRDhX7oPMJwnb5J0tegkwRffigpcrTvGwBe-4DV2vBtE3OxcpWEACGT36_DovUARnn3nuA_FL-Qsbi5DOR85SUvjmmvyf2Asac2Yx3Cx5NyYOuUGCWpkBI52tTrwcwo8OMCS5jEiQEpJ0uPlBVrG-UfESW6mSXAOEfhcglEWoXz7t-YVYObDCCSlhC9jCQs6yjtE7GkyPNh48UFpFWpPqE",
-# }
-
-# response = requests.request("GET", url, headers=headers)
-# print(response.text)
-
+conn.autocommit = True
+cursor = conn.cursor()
+token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6IjM0ZDhkNWVhMzQyNGQxMDMxZWM3Nzc0MzFkYWMzODMwOTQ3MDViNTUxMjMxZTVlNDM0MzFiYjExYzc2MWZlODExNTI5MWQxNTE2YmYzZTM5In0.eyJhdWQiOiIyIiwianRpIjoiMzRkOGQ1ZWEzNDI0ZDEwMzFlYzc3NzQzMWRhYzM4MzA5NDcwNWI1NTEyMzFlNWU0MzQzMWJiMTFjNzYxZmU4MTE1MjkxZDE1MTZiZjNlMzkiLCJpYXQiOjE2Mjc2MDcwMjYsIm5iZiI6MTYyNzYwNzAyNiwiZXhwIjoxNjU5MTQzMDI2LCJzdWIiOiIzNjciLCJzY29wZXMiOltdfQ.BnMxqqk0zaIemodcQbHMkqx7M4PGxCRW6ZdpW4-EJdMp3D-p-MzZh1fFg25Eq3lpZIFI9EldaLIOQHb-L6cMblVrNtZSDupbP9y10O0fEjeXg-yeiv3LR8zA7Mm-LOw9qO6QuzsCOGjJkGVnHq7-lSLVZGPtaPiAhYJ2XHno4Iv2e_0UY-m_taqvZ-8GLG-Fgyr_4DHrUFAE9O4HLT-lJGh0Cur6v_epUnfYpkHTrr6DC4_36OGvhjNMj2zHlEUgRWFJBSUACWNpdWLfsVldxM3h54jL5SQ1Cgs_L2_GIcPmVvEcBH0ID8X5hM_nl0YD_x7Kpiam3uBnJTt1TuI4uNbRleLmG6na4isNq2SktUh9HL2X4J2i-qJYNNjTYqPpJ2cEnGvr-aFUvjEmQxRLdzf7h8_OzJRUAPhB9LJ0N9aL4f5NGWsxYx_2ktrc1-ap08MvrhIWpOe8RzUvdmw8EO39JQR8z6iDcx-xMbKC2OQ8LNBOVXcFhth8Q-wexphIwqgH-tj6xT8OSoDZreGYxfqPAPH2z22JBPQlYRRYpYGwUFq7iL15YbH4p24ydwRrDjstEkrFW3OWHcbIsAMDYd-sULeLK-bhWgvoLRva7vXXYBzZpfTQAw1ns_-fnrv43EkrcsRdol1CRwtH8UqyikL4TGZD01n6eJCmcIiNKfw"
 url = "https://data.tmd.go.th/nwpapi/v1/forecast/location/daily/at"
-
-querystring = {"lat": "13.10", "lon": "100.10", "fields": "tc_max,rh,rain",
-               "date": "2021-07-30", "duration": "7"}
-
 headers = {
     'accept': "application/json",
-    'authorization': "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6IjM0ZDhkNWVhMzQyNGQxMDMxZWM3Nzc0MzFkYWMzODMwOTQ3MDViNTUxMjMxZTVlNDM0MzFiYjExYzc2MWZlODExNTI5MWQxNTE2YmYzZTM5In0.eyJhdWQiOiIyIiwianRpIjoiMzRkOGQ1ZWEzNDI0ZDEwMzFlYzc3NzQzMWRhYzM4MzA5NDcwNWI1NTEyMzFlNWU0MzQzMWJiMTFjNzYxZmU4MTE1MjkxZDE1MTZiZjNlMzkiLCJpYXQiOjE2Mjc2MDcwMjYsIm5iZiI6MTYyNzYwNzAyNiwiZXhwIjoxNjU5MTQzMDI2LCJzdWIiOiIzNjciLCJzY29wZXMiOltdfQ.BnMxqqk0zaIemodcQbHMkqx7M4PGxCRW6ZdpW4-EJdMp3D-p-MzZh1fFg25Eq3lpZIFI9EldaLIOQHb-L6cMblVrNtZSDupbP9y10O0fEjeXg-yeiv3LR8zA7Mm-LOw9qO6QuzsCOGjJkGVnHq7-lSLVZGPtaPiAhYJ2XHno4Iv2e_0UY-m_taqvZ-8GLG-Fgyr_4DHrUFAE9O4HLT-lJGh0Cur6v_epUnfYpkHTrr6DC4_36OGvhjNMj2zHlEUgRWFJBSUACWNpdWLfsVldxM3h54jL5SQ1Cgs_L2_GIcPmVvEcBH0ID8X5hM_nl0YD_x7Kpiam3uBnJTt1TuI4uNbRleLmG6na4isNq2SktUh9HL2X4J2i-qJYNNjTYqPpJ2cEnGvr-aFUvjEmQxRLdzf7h8_OzJRUAPhB9LJ0N9aL4f5NGWsxYx_2ktrc1-ap08MvrhIWpOe8RzUvdmw8EO39JQR8z6iDcx-xMbKC2OQ8LNBOVXcFhth8Q-wexphIwqgH-tj6xT8OSoDZreGYxfqPAPH2z22JBPQlYRRYpYGwUFq7iL15YbH4p24ydwRrDjstEkrFW3OWHcbIsAMDYd-sULeLK-bhWgvoLRva7vXXYBzZpfTQAw1ns_-fnrv43EkrcsRdol1CRwtH8UqyikL4TGZD01n6eJCmcIiNKfw",
+    'authorization': "Bearer {token}".format(token=token),
 }
+# print(headers)
 
-# response = requests.request("GET", url, headers=headers)
+
+def clearTb():
+    sql = "DELETE FROM tmd_forecast"
+    cursor.execute(sql)
 
 
-response = requests.request("GET", url, headers=headers, params=querystring)
+def selectSampling():
+    sql = "SELECT lat, lon, sta FROM eec_sampling_4326"
+    cursor.execute(sql)
+    result = cursor.fetchall()
+    return result
 
-print(response.text)
+
+def getApi(staLocation):
+    today = date.today()
+    for r in staLocation:
+        querystring = {"lat": str(r[0]), "lon": str(r[1]), "fields": "tc_max,tc_min,rh,rain",
+                       "date": str(today), "duration": "8"}
+        print(querystring)
+        response = requests.request(
+            "GET", url, headers=headers, params=querystring)
+        dicts = eval(response.text)
+
+        for dict in dicts:
+            for d in dicts[dict]:
+                for i in d["forecasts"]:
+                    sql = "INSERT INTO tmd_forecast(sta,dt,rain,rh,tc_max,tc_min, geom)VALUES('{sta}','{dt}',{rain},{rh},{tc_max},{tc_min}, ST_GeomFromText('POINT({lon} {lat})', 4326))".format(
+                        sta=r[2], dt=i["time"], rain=i["data"]["rain"], rh=i["data"]["rh"], tc_max=i["data"]["tc_max"], tc_min=i["data"]["tc_min"], lon=r[1], lat=r[0])
+                    cursor.execute(sql)
+                    print(sql)
+
+
+def interp(shp, name):
+    out = "./tiff_forecast/{name}.tif".format(name=name)
+    print(out)
+    idw = gdal.Grid(out, shp, zfield='rain',
+                    algorithm="invdist:power=3")
+    idw = None
+
+
+def createSHP():
+    i = 1
+    while i <= 7:
+        sql = "SELECT gid, rain, TO_CHAR(dt, 'DD-MM-YYYY') as dt, geom FROM tmd_forecast WHERE dt = CURRENT_DATE + {i}".format(
+            i=i)
+        print(sql)
+        shppath = "./shp_forecast/"
+        shpname = "tmd_nextday{d}".format(d=i)
+        outshp = "{shppath}{shpname}.shp".format(
+            shppath=shppath, shpname=shpname)
+        cmd = '''ogr2ogr -overwrite -f \"ESRI Shapefile\" {outshp} PG:"host={host} user={username} dbname={db} password={password}" -sql "{sql}"'''.format(
+            outshp=outshp, host=dbServer, username=dbUser, db=dbName, password=dbPW, sql=sql)
+        os.system(cmd)
+        interp(outshp, shpname)
+        i += 1
+
+
+if __name__ == "__main__":
+    # clearTb()
+    # staLocation = selectSampling()
+    # print(staLocation)
+    # getApi(staLocation)
+    createSHP()
+
+    conn.commit()
+    conn.close()
+
+# querystring = {"lat": "13.10", "lon": "100.10", "fields": "tc_max,tc_min,rh,rain",
+#                "date": "2021-07-30", "duration": "1"}
+
+# dicts = {"WeatherForecasts": [{"location": {"lat": 13.0925, "lon": 100.1089}, "forecasts": [{"time": "2021-07-30T00:00:00+07:00", "data": {"rain": 0.5, "rh": 76.67, "tc_max": 32.09}}, {"time": "2021-07-31T00:00:00+07:00", "data": {"rain": 9.3, "rh": 76.17, "tc_max": 31.98}}, {"time": "2021-08-01T00:00:00+07:00", "data": {"rain": 0, "rh": 74.39, "tc_max": 32.11}}, {
+#     "time": "2021-08-02T00:00:00+07:00", "data": {"rain": 1.8, "rh": 68.12, "tc_max": 34.01}}, {"time": "2021-08-03T00:00:00+07:00", "data": {"rain": 1.3, "rh": 66.93, "tc_max": 34.47}}, {"time": "2021-08-04T00:00:00+07:00", "data": {"rain": 0, "rh": 68.12, "tc_max": 34.93}}, {"time": "2021-08-05T00:00:00+07:00", "data": {"rain": 0, "rh": 67.02, "tc_max": 35.03}}]}]}
