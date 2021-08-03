@@ -44,7 +44,7 @@ def getApi(staLocation):
     today = date.today()
     for r in staLocation:
         querystring = {"lat": str(r[0]), "lon": str(r[1]), "fields": "tc_max,tc_min,rh,rain",
-                       "date": str(today), "duration": "8"}
+                       "date": str(today), "duration": "16"}
         print(querystring)
         response = requests.request(
             "GET", url, headers=headers, params=querystring)
@@ -68,12 +68,28 @@ def interp(shp, name):
 
 def createSHP():
     i = 1
-    while i <= 7:
+    while i <= 14:
         sql = "SELECT gid, rain, TO_CHAR(dt, 'DD-MM-YYYY') as dt, geom FROM tmd_forecast WHERE dt = CURRENT_DATE + {i}".format(
             i=i)
         print(sql)
         shppath = "./shp_forecast/"
         shpname = "tmd_nextday{d}".format(d=i)
+        outshp = "{shppath}{shpname}.shp".format(
+            shppath=shppath, shpname=shpname)
+        cmd = '''ogr2ogr -overwrite -f \"ESRI Shapefile\" {outshp} PG:"host={host} user={username} dbname={db} password={password}" -sql "{sql}"'''.format(
+            outshp=outshp, host=dbServer, username=dbUser, db=dbName, password=dbPW, sql=sql)
+        os.system(cmd)
+        interp(outshp, shpname)
+        i += 1
+
+
+def createRainpreviousSHP():
+    i = 0
+    while i <= 7:
+        sql = "SELECT *  FROM v_weather_daily_tmd WHERE datetime = current_date - {i}".format(
+            i=i)
+        shppath = "./shp_forecast/"
+        shpname = "tmd_preday{d}".format(d=i)
         outshp = "{shppath}{shpname}.shp".format(
             shppath=shppath, shpname=shpname)
         cmd = '''ogr2ogr -overwrite -f \"ESRI Shapefile\" {outshp} PG:"host={host} user={username} dbname={db} password={password}" -sql "{sql}"'''.format(
@@ -89,13 +105,14 @@ def runSched():
     print(staLocation)
     getApi(staLocation)
     createSHP()
-
+    createRainpreviousSHP()
+    print(date.today())
     conn.commit()
-    conn.close()
+    # conn.close()
 
 
 if __name__ == "__main__":
-    schedule.every().day.at("09:10").do(runSched)
+    schedule.every().day.at("11:18").do(runSched)
     while True:
         schedule.run_pending()
         time.sleep(1)
