@@ -105,7 +105,7 @@ def runSched():
     print(staLocation)
     getApi(staLocation)
     createSHP()
-    createRainpreviousSHP()
+    # createRainpreviousSHP()
     print(date.today())
     conn.commit()
     # conn.close()
