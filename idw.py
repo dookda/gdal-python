@@ -119,6 +119,7 @@ def runSchedTMD_anual():
 
 
 if __name__ == '__main__':
+    runSchedTMD()
     schedule.every().day.at("07:31").do(runSchedTMD_anual)
     schedule.every().day.at("07:32").do(runSchedTMD)
     schedule.every().day.at("05:34").do(runSchedAQI)
